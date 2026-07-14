@@ -6,7 +6,7 @@ import StatusBadge from "@/components/base/StatusBadge";
 import PriorityBadge from "@/components/base/PriorityBadge";
 import EmptyState from "@/components/base/EmptyState";
 import { inputClass, selectClass } from "@/components/base/FormField";
-import { useStore } from "@/lib/store";
+import { useStore, getUserNameById, useAssignableUsers } from "@/lib/store";
 import {
   computeCompletionTime,
   computeDaysInProcess,
@@ -62,6 +62,7 @@ export default function DatabasePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const { values: dd } = useDropdownValues();
+  const assignableUsers = useAssignableUsers();
 
   const setF = (patch: Partial<Filters>) => {
     setFilters((f) => ({ ...f, ...patch }));
@@ -264,10 +265,24 @@ export default function DatabasePage() {
           <div className="p-4 border-b border-slate-100 bg-slate-50/50 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             <FilterSelect label="Status" value={filters.status} onChange={(v) => setF({ status: v })}
               options={dd.status} />
-            <FilterSelect label="Owner" value={filters.owner} onChange={(v) => setF({ owner: v })}
-              options={dd.owner} />
-            <FilterSelect label="Backup Owner" value={filters.backupOwner}
-              onChange={(v) => setF({ backupOwner: v })} options={dd.owner} />
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Owner</label>
+              <select className={selectClass + " text-xs"} value={filters.owner} onChange={(e) => setF({ owner: e.target.value })}>
+                <option value="">All</option>
+                {assignableUsers.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Backup Owner</label>
+              <select className={selectClass + " text-xs"} value={filters.backupOwner} onChange={(e) => setF({ backupOwner: e.target.value })}>
+                <option value="">All</option>
+                {assignableUsers.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
             <FilterSelect label="KP Entity" value={filters.kpEntity}
               onChange={(v) => setF({ kpEntity: v })} options={dd.kp_entity} />
             <FilterSelect label="Request Type" value={filters.requestType}
@@ -340,7 +355,7 @@ export default function DatabasePage() {
                         </button>
                       </td>
                       <td className="px-4 py-3 text-slate-700">{i.supplierName}</td>
-                      <td className="px-4 py-3 text-slate-600">{i.assignedOwner}</td>
+                      <td className="px-4 py-3 text-slate-600">{getUserNameById(i.assignedOwner, store.users)}</td>
                       <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{i.kpEntity}</td>
                       <td className="px-4 py-3 text-slate-600">{i.contractType || "—"}</td>
                       <td className="px-4 py-3"><StatusBadge status={i.status} size="sm" /></td>

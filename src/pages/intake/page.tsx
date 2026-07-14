@@ -7,8 +7,8 @@ import PriorityBadge from "@/components/base/PriorityBadge";
 import EmptyState from "@/components/base/EmptyState";
 import { FormField, inputClass, selectClass } from "@/components/base/FormField";
 import CommentsTimeline from "./components/CommentsTimeline";
-import { useStore, useCurrentUser, updateIntake, addComment, getCommentsForIntake } from "@/lib/store";
-import type { CommentType, Intake, IntakeStatus } from "@/types/intake";
+import { useStore, useCurrentUser, updateIntake, addComment, getCommentsForIntake, getUserNameById, useAssignableUsers, isUserOwnerOrBackup, getUserOpenIntakeCount } from "@/lib/store";
+import type { CommentType, Intake, IntakeStatus, User } from "@/types/intake";
 import { useDropdownValues } from "@/hooks/useDropdownValues";
 import {
   ROOT_CAUSES,
@@ -31,6 +31,7 @@ export default function IntakeDetailPage() {
   const user = useCurrentUser();
   const intake = store.intakes.find((i) => i.id === id);
   const { values: dd } = useDropdownValues();
+  const assignableUsers = useAssignableUsers();
 
   const [form, setForm] = useState<Intake | null>(intake ?? null);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -66,8 +67,7 @@ export default function IntakeDetailPage() {
 
   const isAdmin = user.role === "Administrator";
   const isMgmt = user.role === "Management";
-  const isOwnerOrBackup =
-    user.name === intake.assignedOwner || user.name === intake.backupOwner;
+  const isOwnerOrBackup = isUserOwnerOrBackup(intake, user);
   const canEditPhase2 = isAdmin || (user.role === "Contracting" && isOwnerOrBackup);
   const canReassign = isAdmin;
 
@@ -112,8 +112,8 @@ export default function IntakeDetailPage() {
   };
 
   const handleSelfAssign = () => {
-    if (user.role !== "Contracting") return;
-    updateIntake(intake.id, { assignedOwner: user.name }, user.name);
+    if (user.role !== "Contracting" && user.role !== "Administrator") return;
+    updateIntake(intake.id, { assignedOwner: user.id }, user.name);
     addComment({
       intakeId: intake.id,
       userName: user.name,
@@ -122,6 +122,9 @@ export default function IntakeDetailPage() {
       body: `Self-assigned as Owner.`,
     });
   };
+
+  const ownerName = getUserNameById(intake.assignedOwner, store.users);
+  const backupName = getUserNameById(intake.backupOwner, store.users);
 
   return (
     <AppLayout>
@@ -174,9 +177,12 @@ export default function IntakeDetailPage() {
               {canReassign ? (
                 <ReassignButton
                   intake={intake}
-                  ownerNames={dd.owner}
-                  onReassign={(owner, backup, comment) => {
-                    updateIntake(intake.id, { assignedOwner: owner, backupOwner: backup }, user.name);
+                  assignableUsers={assignableUsers}
+                  storeIntakes={store.intakes}
+                  currentOwnerName={ownerName}
+                  currentBackupName={backupName}
+                  onReassign={(ownerId, backupId, comment) => {
+                    updateIntake(intake.id, { assignedOwner: ownerId, backupOwner: backupId }, user.name);
                     if (comment.trim()) {
                       addComment({
                         intakeId: intake.id,
@@ -188,7 +194,7 @@ export default function IntakeDetailPage() {
                     }
                   }}
                 />
-              ) : user.role === "Contracting" && user.name !== intake.assignedOwner ? (
+              ) : (user.role === "Contracting" || user.role === "Administrator") && !isOwnerOrBackup ? (
                 <button
                   type="button"
                   onClick={handleSelfAssign}
@@ -209,8 +215,8 @@ export default function IntakeDetailPage() {
               <ReadField label="FDA NUID" value={intake.fdaNuid} />
               <ReadField label="Requester Name" value={intake.requesterName} />
               <ReadField label="Requester NUID" value={intake.requesterNuid} />
-              <ReadField label="Assigned Owner" value={intake.assignedOwner} highlight />
-              <ReadField label="Backup Owner" value={intake.backupOwner || "—"} />
+              <ReadField label="Assigned Owner" value={ownerName} highlight />
+              <ReadField label="Backup Owner" value={backupName} />
               <ReadField label="Assignment Date" value={formatDate(intake.assignmentDate)} />
               <ReadField label="Assignment Month" value={monthLabel(intake.assignmentDate) || "—"} />
               <ReadField label="Days in Process" value={`${days} d`} />
@@ -535,11 +541,17 @@ function StatItem({ label, value }: { label: string; value: string }) {
 
 function ReassignButton({
   intake,
-  ownerNames,
+  assignableUsers,
+  storeIntakes,
+  currentOwnerName,
+  currentBackupName,
   onReassign,
 }: {
   intake: Intake;
-  ownerNames: string[];
+  assignableUsers: User[];
+  storeIntakes: Intake[];
+  currentOwnerName: string;
+  currentBackupName: string;
   onReassign: (owner: string, backup: string, comment: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -572,17 +584,27 @@ function ReassignButton({
             <div className="space-y-3">
               <FormField label="Assigned Owner">
                 <select className={selectClass} value={owner} onChange={(e) => setOwner(e.target.value)}>
-                  {ownerNames.map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
+                  {assignableUsers.map((u) => {
+                    const wl = getUserOpenIntakeCount(u.id, storeIntakes);
+                    return (
+                      <option key={u.id} value={u.id}>
+                        {u.name}{u.jobTitle ? ` · ${u.jobTitle}` : ''} · {wl} Open
+                      </option>
+                    );
+                  })}
                 </select>
               </FormField>
               <FormField label="Backup Owner">
                 <select className={selectClass} value={backup} onChange={(e) => setBackup(e.target.value)}>
                   <option value="">None</option>
-                  {ownerNames.filter((o) => o !== owner).map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
+                  {assignableUsers.filter((u) => u.id !== owner).map((u) => {
+                    const wl = getUserOpenIntakeCount(u.id, storeIntakes);
+                    return (
+                      <option key={u.id} value={u.id}>
+                        {u.name}{u.jobTitle ? ` · ${u.jobTitle}` : ''} · {wl} Open
+                      </option>
+                    );
+                  })}
                 </select>
               </FormField>
               <FormField label="Reassignment Comment">

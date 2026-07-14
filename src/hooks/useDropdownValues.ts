@@ -6,7 +6,6 @@ export type DropdownCategory =
   | "line_of_business"
   | "contract_type"
   | "status"
-  | "owner"
   | "kp_entity";
 
 let cachedValues: Record<DropdownCategory, string[]> | null = null;
@@ -29,7 +28,6 @@ async function loadDropdownValues(): Promise<Record<DropdownCategory, string[]>>
         line_of_business: [],
         contract_type: [],
         status: [],
-        owner: [],
         kp_entity: [],
       };
     }
@@ -39,7 +37,6 @@ async function loadDropdownValues(): Promise<Record<DropdownCategory, string[]>>
       line_of_business: [],
       contract_type: [],
       status: [],
-      owner: [],
       kp_entity: [],
     };
 
@@ -67,7 +64,6 @@ export function useDropdownValues(): {
       line_of_business: [],
       contract_type: [],
       status: [],
-      owner: [],
       kp_entity: [],
     },
   );

@@ -25,7 +25,7 @@ function normalizeRole(raw: unknown): Role {
 async function fetchAppUser(supabaseUserId: string, email?: string): Promise<AppUser | null> {
   const { data, error } = await supabase
     .from("users")
-    .select("id, name, email, role")
+    .select("id, name, email, role, active, job_title, nuid, kp_entity")
     .eq("id", supabaseUserId)
     .maybeSingle();
 
@@ -35,6 +35,10 @@ async function fetchAppUser(supabaseUserId: string, email?: string): Promise<App
       name: data.name ?? (email ? email.split("@")[0] : "User"),
       email: data.email ?? email ?? "",
       role: normalizeRole(data.role),
+      active: (data.active as boolean) ?? true,
+      jobTitle: (data.job_title as string) ?? undefined,
+      nuid: (data.nuid as string) ?? undefined,
+      kpEntity: (data.kp_entity as string) ?? undefined,
     };
   }
 
@@ -43,7 +47,7 @@ async function fetchAppUser(supabaseUserId: string, email?: string): Promise<App
     const { data: created, error: insertErr } = await supabase
       .from("users")
       .insert({ id: supabaseUserId, email, name: email.split("@")[0], role: "Requester", active: true })
-      .select("id, name, email, role")
+      .select("id, name, email, role, active")
       .maybeSingle();
 
     if (!insertErr && created) {
@@ -52,6 +56,8 @@ async function fetchAppUser(supabaseUserId: string, email?: string): Promise<App
         name: created.name ?? email.split("@")[0],
         email: created.email ?? email,
         role: normalizeRole(created.role),
+        active: (created.active as boolean) ?? true,
+        jobTitle: undefined,
       };
     }
   }

@@ -6,7 +6,7 @@ import StatusBadge from "@/components/base/StatusBadge";
 import PriorityBadge from "@/components/base/PriorityBadge";
 import EmptyState from "@/components/base/EmptyState";
 import { FormField, inputClass, selectClass } from "@/components/base/FormField";
-import { useStore, useCurrentUser, createIntake, addComment } from "@/lib/store";
+import { useStore, useCurrentUser, createIntake, addComment, useAssignableUsers, getUserNameById, getUserOpenIntakeCount } from "@/lib/store";
 import { useDropdownValues } from "@/hooks/useDropdownValues";
 import { PRIORITIES } from "@/mocks/dropdowns";
 import type { Priority } from "@/types/intake";
@@ -36,6 +36,7 @@ export default function AssignmentCenterPage() {
   const [form, setForm] = useState(emptyForm);
   const [toast, setToast] = useState<string | null>(null);
   const { values: dd } = useDropdownValues();
+  const assignableUsers = useAssignableUsers();
   const kpEntities = dd.kp_entity;
 
   const isAdmin = user.role === "Administrator";
@@ -117,8 +118,9 @@ export default function AssignmentCenterPage() {
         });
       }
 
+      const ownerName = getUserNameById(intake.assignedOwner, store.users);
       setForm({ ...emptyForm, assignmentDate: new Date().toISOString().slice(0, 10) });
-      setToast(`Intake ${intake.intakeNumber} assigned to ${intake.assignedOwner}`);
+      setToast(`Intake ${intake.intakeNumber} assigned to ${ownerName}`);
       window.setTimeout(() => setToast(null), 4000);
     });
   };
@@ -282,9 +284,14 @@ export default function AssignmentCenterPage() {
                 onChange={(e) => update({ assignedOwner: e.target.value })}
               >
                 <option value="">Select…</option>
-                {dd.owner.map((o) => (
-                  <option key={o}>{o}</option>
-                ))}
+                {assignableUsers.map((u) => {
+                  const wl = getUserOpenIntakeCount(u.id, store.intakes);
+                  return (
+                    <option key={u.id} value={u.id}>
+                      {u.name}{u.jobTitle ? ` · ${u.jobTitle}` : ''} · {wl} Open
+                    </option>
+                  );
+                })}
               </select>
             </FormField>
 
@@ -295,9 +302,14 @@ export default function AssignmentCenterPage() {
                 onChange={(e) => update({ backupOwner: e.target.value })}
               >
                 <option value="">Select…</option>
-                {dd.owner.filter((o) => o !== form.assignedOwner).map((o) => (
-                  <option key={o}>{o}</option>
-                ))}
+                {assignableUsers.filter((u) => u.id !== form.assignedOwner).map((u) => {
+                  const wl = getUserOpenIntakeCount(u.id, store.intakes);
+                  return (
+                    <option key={u.id} value={u.id}>
+                      {u.name}{u.jobTitle ? ` · ${u.jobTitle}` : ''} · {wl} Open
+                    </option>
+                  );
+                })}
               </select>
             </FormField>
 
@@ -352,34 +364,37 @@ export default function AssignmentCenterPage() {
             <i className="ri-history-line text-slate-400"></i>
           </div>
           <div className="space-y-3">
-            {recent.map((i) => (
-              <button
-                type="button"
-                key={i.id}
-                onClick={() => navigate(`/intake/${i.id}`)}
-                className="w-full text-left p-3 rounded-md border border-slate-100 hover:border-brand-200 hover:bg-brand-50/40 transition cursor-pointer"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 truncate">
-                      {i.intakeNumber}
+            {recent.map((i) => {
+              const displayOwner = getUserNameById(i.assignedOwner, store.users);
+              return (
+                <button
+                  type="button"
+                  key={i.id}
+                  onClick={() => navigate(`/intake/${i.id}`)}
+                  className="w-full text-left p-3 rounded-md border border-slate-100 hover:border-brand-200 hover:bg-brand-50/40 transition cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-900 truncate">
+                        {i.intakeNumber}
+                      </div>
+                      <div className="text-xs text-slate-500 truncate">{i.supplierName}</div>
                     </div>
-                    <div className="text-xs text-slate-500 truncate">{i.supplierName}</div>
+                    <PriorityBadge priority={i.priority} />
                   </div>
-                  <PriorityBadge priority={i.priority} />
-                </div>
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <div className="text-xs text-slate-500 flex items-center gap-1">
-                    <i className="ri-user-line"></i>
-                    {i.assignedOwner}
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="text-xs text-slate-500 flex items-center gap-1">
+                      <i className="ri-user-line"></i>
+                      {displayOwner}
+                    </div>
+                    <StatusBadge status={i.status} size="sm" />
                   </div>
-                  <StatusBadge status={i.status} size="sm" />
-                </div>
-                <div className="mt-1 text-xs text-slate-400">
-                  Assigned {formatDate(i.assignmentDate)}
-                </div>
-              </button>
-            ))}
+                  <div className="mt-1 text-xs text-slate-400">
+                    Assigned {formatDate(i.assignmentDate)}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

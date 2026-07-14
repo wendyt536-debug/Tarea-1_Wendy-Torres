@@ -19,7 +19,7 @@ import PageHeader from "@/components/base/PageHeader";
 import KpiCard from "./components/KpiCard";
 import TimeNavigator from "@/components/feature/TimeNavigator";
 import type { TimeFilterState } from "@/components/feature/TimeNavigator";
-import { useStore, useCurrentUser } from "@/lib/store";
+import { useStore, useCurrentUser, getUserNameById } from "@/lib/store";
 import { useDropdownValues } from "@/hooks/useDropdownValues";
 import {
   computeCompletionTime,
@@ -93,9 +93,12 @@ export default function DashboardPage() {
 
   const byOwner = useMemo(() => {
     const map = new Map<string, number>();
-    filteredIntakes.forEach((i) => map.set(i.assignedOwner, (map.get(i.assignedOwner) ?? 0) + 1));
+    filteredIntakes.forEach((i) => {
+      const name = getUserNameById(i.assignedOwner, store.users);
+      map.set(name, (map.get(name) ?? 0) + 1);
+    });
     return Array.from(map, ([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [filteredIntakes]);
+  }, [filteredIntakes, store.users]);
 
   const byLob = useMemo(() => {
     const map = new Map<string, number>();

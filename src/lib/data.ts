@@ -140,7 +140,7 @@ export async function loadFromSupabase(): Promise<void> {
     const [intakesRes, commentsRes, usersRes] = await Promise.all([
       supabase.from("intakes").select("*").order("created_at", { ascending: false }),
       supabase.from("comments").select("*").order("created_at", { ascending: false }),
-      supabase.from("users").select("id, name, email, role"),
+      supabase.from("users").select("id, name, email, role, active, job_title, nuid, kp_entity, created_at"),
     ]);
 
     if (intakesRes.data && (intakesRes.data as Record<string, unknown>[]).length > 0) {
@@ -161,7 +161,12 @@ export async function loadFromSupabase(): Promise<void> {
         id: u.id as string,
         name: (u.name as string) ?? (u.email as string)?.split("@")[0] ?? "User",
         email: u.email as string,
-        role: u.role as User["role"],
+        role: (u.role as User["role"]) ?? "Requester",
+        active: (u.active as boolean) ?? true,
+        jobTitle: (u.job_title as string) ?? undefined,
+        nuid: (u.nuid as string) ?? undefined,
+        kpEntity: (u.kp_entity as string) ?? undefined,
+        createdAt: (u.created_at as string) ?? undefined,
       }));
     }
     cacheLoaded = true;
@@ -337,6 +342,13 @@ export function subscribeToRealtime() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "comments" },
+      () => {
+        loadFromSupabase();
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "users" },
       () => {
         loadFromSupabase();
       },

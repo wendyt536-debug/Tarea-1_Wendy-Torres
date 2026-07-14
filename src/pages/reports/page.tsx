@@ -17,7 +17,7 @@ import AppLayout from "@/components/feature/AppLayout";
 import PageHeader from "@/components/base/PageHeader";
 import StatusBadge from "@/components/base/StatusBadge";
 import KpiCard from "@/pages/dashboard/components/KpiCard";
-import { useStore, getLatestComment } from "@/lib/store";
+import { useStore, getLatestComment, getUserNameById } from "@/lib/store";
 import {
   computeCompletionTime,
   computeDaysInProcess,
@@ -290,8 +290,8 @@ export default function ReportsPage() {
                           {i.intakeNumber}
                         </button>
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-slate-700">{i.assignedOwner}</td>
-                      <td className="px-3 py-2 whitespace-nowrap text-slate-500">{i.backupOwner || "—"}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-slate-700">{getUserNameById(i.assignedOwner, store.users)}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-slate-500">{getUserNameById(i.backupOwner, store.users)}</td>
                       <td className="px-3 py-2 whitespace-nowrap text-slate-600">{i.requestType}</td>
                       <td className="px-3 py-2 whitespace-nowrap text-slate-600">{i.lineOfBusiness}</td>
                       <td className="px-3 py-2 whitespace-nowrap text-slate-600">{i.kpEntity}</td>

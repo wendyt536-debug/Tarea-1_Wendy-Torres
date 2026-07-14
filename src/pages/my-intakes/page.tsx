@@ -6,7 +6,7 @@ import StatusBadge from "@/components/base/StatusBadge";
 import PriorityBadge from "@/components/base/PriorityBadge";
 import EmptyState from "@/components/base/EmptyState";
 import { inputClass, selectClass } from "@/components/base/FormField";
-import { useStore, useCurrentUser } from "@/lib/store";
+import { useStore, useCurrentUser, getUserNameById, isUserOwnerOrBackup } from "@/lib/store";
 import { useDropdownValues } from "@/hooks/useDropdownValues";
 import { computeDaysInProcess, formatDate, isOutOfSLA } from "@/lib/calculations";
 
@@ -27,8 +27,8 @@ export default function MyIntakesPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const mine = useMemo(() => {
-    const belongsToMe = (name: string, backup: string) =>
-      name === user.name || backup === user.name;
+    const belongsToMe = (ownerId: string, backupId: string) =>
+      ownerId === user.id || backupId === user.id;
     let list = store.intakes.filter((i) =>
       user.role === "Administrator"
         ? true

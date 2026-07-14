@@ -30,7 +30,9 @@ export interface Intake {
   fdaNuid: string;
   requesterName: string;
   requesterNuid: string;
+  /** Stored as user ID; resolve to a display name via getUserNameById() */
   assignedOwner: string;
+  /** Stored as user ID; resolve to a display name via getUserNameById() */
   backupOwner: string;
   assignmentDate: string; // ISO date
   priority: Priority;
@@ -61,4 +63,9 @@ export interface User {
   name: string;
   role: Role;
   email: string;
+  active: boolean;
+  jobTitle?: string;
+  nuid?: string;
+  kpEntity?: string;
+  createdAt?: string;
 }
