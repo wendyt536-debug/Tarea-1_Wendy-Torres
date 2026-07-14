@@ -1,16 +1,17 @@
 import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AppRoutes } from "./router";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n";
 import { AuthProvider, useAuth } from "@/components/feature/AuthProvider";
-import { useDataLoader } from "@/lib/store";
+import { useDataLoader, setCurrentUser } from "@/lib/store";
 
 function AppInner() {
   const { session, appUser, loading: authLoading } = useAuth();
   const { loading: dataLoading, error: dataError } = useDataLoader();
   const location = useLocation();
   const navigate = useNavigate();
+  const lastUserId = useRef<string | null>(null);
 
   // Auth redirect: use effect-based navigation instead of <Navigate> component
   // to avoid React DOM "removeChild" reconciliation errors
@@ -27,6 +28,16 @@ function AppInner() {
       navigate("/dashboard", { replace: true });
     }
   }, [session, appUser, authLoading, dataLoading, location.pathname, navigate]);
+
+  // Set current user synchronously BEFORE children render so useCurrentUser()
+  // has the right user from the very first render. Without this, child pages
+  // that call useCurrentUser() before the Header's useEffect fires get the
+  // WRONG user (store.users[0] or the "Requester" fallback), which strips
+  // admin rights on initial page load.
+  if (session && appUser && lastUserId.current !== appUser.id) {
+    lastUserId.current = appUser.id;
+    setCurrentUser(appUser.id);
+  }
 
   if (authLoading || dataLoading) {
     return (
