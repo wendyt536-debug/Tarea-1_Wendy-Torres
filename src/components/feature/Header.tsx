@@ -5,11 +5,11 @@ import { useStore, setCurrentUser } from "@/lib/store";
 import { useEffect } from "react";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", icon: "ri-dashboard-line", label: "Dashboard", roles: ["Administrator", "Contracting", "Management"] },
+  { to: "/dashboard", icon: "ri-dashboard-line", label: "Dashboard", roles: ["Administrator", "Contracting", "Management", "Requester"] },
   { to: "/assignment-center", icon: "ri-user-add-line", label: "Assignment Center", roles: ["Administrator"] },
   { to: "/my-intakes", icon: "ri-briefcase-line", label: "My Intakes", roles: ["Contracting", "Administrator"] },
-  { to: "/database", icon: "ri-database-2-line", label: "General Database", roles: ["Administrator", "Contracting", "Management"] },
-  { to: "/reports", icon: "ri-bar-chart-2-line", label: "Reports", roles: ["Administrator", "Contracting", "Management"] },
+  { to: "/database", icon: "ri-database-2-line", label: "General Database", roles: ["Administrator", "Contracting", "Management", "Requester"] },
+  { to: "/reports", icon: "ri-bar-chart-2-line", label: "Reports", roles: ["Administrator", "Contracting", "Management", "Requester"] },
   { to: "/admin/users", icon: "ri-group-line", label: "User Management", roles: ["Administrator"] },
 ];
 

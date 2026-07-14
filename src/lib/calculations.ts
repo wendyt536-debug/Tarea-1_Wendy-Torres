@@ -3,6 +3,52 @@ import type { Intake } from "@/types/intake";
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 export const SLA_DAYS = 30;
 
+/**
+ * Filters intakes by a date dimension (assignment/received/finishing) and a set of periods.
+ * - When periods is empty, all intakes pass through (All Time).
+ * - Otherwise intakes must match at least one period (year + month) via the chosen dimension.
+ * - Intakes with an empty date string for the chosen dimension are excluded.
+ */
+export type DateDimension = "assignmentDate" | "receivedDate" | "finishingDate";
+
+export interface Period {
+  year: number;
+  month: number; // 0-11
+}
+
+export function filterIntakesByTime(
+  intakes: Intake[],
+  dimension: DateDimension,
+  periods: Period[] | null | undefined,
+): Intake[] {
+  // "All Time" — no valid periods means no date filtering at all.
+  if (!Array.isArray(periods) || periods.length === 0) return intakes;
+
+  // Guard against malformed period entries (e.g. migrated / stale session data).
+  const validPeriods = periods.filter(
+    (p): p is Period =>
+      !!p &&
+      typeof p.year === "number" &&
+      typeof p.month === "number" &&
+      !Number.isNaN(p.year) &&
+      !Number.isNaN(p.month),
+  );
+  if (validPeriods.length === 0) return intakes;
+
+  const validDimension: DateDimension =
+    dimension === "assignmentDate" || dimension === "receivedDate" || dimension === "finishingDate"
+      ? dimension
+      : "assignmentDate";
+
+  return intakes.filter((i) => {
+    const raw = i[validDimension];
+    if (!raw) return false;
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return false;
+    return validPeriods.some((p) => d.getFullYear() === p.year && d.getMonth() === p.month);
+  });
+}
+
 export function workingDaysBetween(start: string, end: string | Date): number {
   if (!start) return 0;
   const s = new Date(start);

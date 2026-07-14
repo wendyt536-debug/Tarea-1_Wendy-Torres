@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
-import { useCurrentUser } from "@/lib/store";
+import { useAuth } from "@/components/feature/AuthProvider";
+import type { Role } from "@/types/intake";
 
 interface NavItem {
   to: string;
@@ -18,8 +19,9 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export default function Sidebar() {
-  const user = useCurrentUser();
-  const items = NAV_ITEMS.filter((n) => n.roles.includes(user.role));
+  const { appUser } = useAuth();
+  const role: Role = appUser?.role ?? "Requester";
+  const items = NAV_ITEMS.filter((n) => n.roles.includes(role));
 
   return (
     <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-white border-r border-slate-200 min-h-screen">
